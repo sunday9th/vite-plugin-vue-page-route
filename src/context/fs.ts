@@ -8,11 +8,11 @@ import {
   getAddFileConfig,
   getRouteModuleNameByRouteName,
   getRouteModuleNameByGlob,
-  getIsRouteModuleFileExist,
-  checkIsValidRouteModule,
-  getTotalRouteModuleFromGlobs,
+  getRouteModuleWhetherFileExist,
   getSingleRouteModulesFromGlob,
-  mergeFirstDegreeRouteModule
+  mergeFirstDegreeRouteModule,
+  getRouteNameByGlobWithTransformer,
+  recurseRemoveModuleByNames
 } from '../shared';
 import type {
   ContextOption,
@@ -109,7 +109,19 @@ export function createFWHooksOfGenDeclarationAndViews(
   return hooks;
 }
 
-export function createFWHooksOfGenModule(dispatchs: FileWatcherDispatch[], options: ContextOption) {
+export function createFWHooksOfGenModule(
+  dispatchs: FileWatcherDispatch[],
+  routeConfig: RouteConfig,
+  options: ContextOption
+) {
+  async function getRouteModule(
+    moduleName: string,
+    existModuleName: string,
+    existCallback: (module: RouteModule, filePath: string) => Promise<RouteModule | null>
+  ) {
+    return getRouteModuleWhetherFileExist({ moduleName, existModuleName, routeConfig, options, existCallback });
+  }
+
   const hooks: FileWatcherHooks = {
     async onRenameDirWithFile() {
       const { oldRouteName, newRouteName } = getRenamedDirConfig(dispatchs, options);
@@ -117,81 +129,63 @@ export function createFWHooksOfGenModule(dispatchs: FileWatcherDispatch[], optio
       const oldModuleName = getRouteModuleNameByRouteName(oldRouteName);
       const newModuleName = getRouteModuleNameByRouteName(newRouteName);
 
-      const { exist, filePath } = await getIsRouteModuleFileExist(oldModuleName, options);
+      const module = await getRouteModule(newModuleName, oldModuleName, async (routeModule, filePath) => {
+        const moduleJson = JSON.stringify(routeModule);
+        const updateModuleJson = moduleJson.replace(oldRouteName, newRouteName);
+        const existModule = JSON.parse(updateModuleJson) as RouteModule;
 
-      let module: RouteModule;
+        await remove(filePath);
 
-      function addModule() {
-        const globs = dispatchs.filter(dispatch => dispatch.event === 'add').map(dispatch => dispatch.path);
-        module = getTotalRouteModuleFromGlobs(globs, options);
+        return existModule;
+      });
+      if (module) {
+        await generateRouteModuleCode(newModuleName, module, options);
       }
-
-      try {
-        if (exist) {
-          const importModule = (await import(filePath)).default;
-
-          if (checkIsValidRouteModule(importModule)) {
-            const moduleJson = JSON.stringify(importModule);
-            const updateModuleJson = moduleJson.replace(oldRouteName, newRouteName);
-            module = JSON.parse(updateModuleJson) as RouteModule;
-          }
-
-          await remove(filePath);
-        }
-      } catch {
-        addModule();
-      }
-
-      if (!module!) {
-        addModule();
-      }
-
-      await generateRouteModuleCode(newModuleName, module!, options);
     },
     async onDelDirWithFile() {
-      // const { delRouteName } = getDelDirConfig(dispatchs, options);
-      // const moduleName = getAllRouteNames(delRouteName)[0];
-      // const { exist, filePath } = await getIsRouteModuleFileExist(moduleName, options);
-      // let module: RouteModule;
+      const { delRouteName } = getDelDirConfig(dispatchs, options);
+      const moduleName = getRouteModuleNameByRouteName(delRouteName);
+
+      const globs = dispatchs.filter(dispatch => dispatch.event === 'unlink').map(dispatch => dispatch.path);
+      const routeNames = globs.map(glob => getRouteNameByGlobWithTransformer(glob, options));
+
+      const module = await getRouteModule(moduleName, moduleName, async (routeModule, filePath) => {
+        if (delRouteName === moduleName) {
+          await remove(filePath);
+
+          return null;
+        }
+
+        recurseRemoveModuleByNames(routeModule, routeNames);
+
+        return routeModule;
+      });
+
+      if (module) {
+        await generateRouteModuleCode(moduleName, module, options);
+      }
     },
     async onAddDirWithFile() {
       const globs = dispatchs.filter(dispatch => dispatch.event === 'add').map(dispatch => dispatch.path);
 
       const moduleName = getRouteModuleNameByGlob(globs[0], options);
 
-      const { exist, filePath } = await getIsRouteModuleFileExist(moduleName, options);
+      const module = await getRouteModule(moduleName, moduleName, async routeModule => {
+        globs.forEach(glob => {
+          const modules = getSingleRouteModulesFromGlob(glob, options);
+          mergeFirstDegreeRouteModule(routeModule, modules);
+        });
 
-      let module: RouteModule;
+        return routeModule;
+      });
 
-      function addModule() {
-        module = getTotalRouteModuleFromGlobs(globs, options);
+      if (module) {
+        await generateRouteModuleCode(moduleName, module, options);
       }
-
-      try {
-        if (exist) {
-          const importModule = (await import(filePath)).default;
-
-          if (checkIsValidRouteModule(importModule)) {
-            const moduleJson = JSON.stringify(importModule);
-            module = JSON.parse(moduleJson) as RouteModule;
-
-            globs.forEach(glob => {
-              const modules = getSingleRouteModulesFromGlob(glob, options);
-              mergeFirstDegreeRouteModule(module, modules);
-            });
-          }
-        }
-      } catch {
-        addModule();
-      }
-
-      if (!module!) {
-        addModule();
-      }
-
-      await generateRouteModuleCode(moduleName, module!, options);
     },
-    async onDelFile() {},
+    async onDelFile() {
+      this.onDelDirWithFile();
+    },
     async onAddFile() {
       await this.onAddDirWithFile();
     }

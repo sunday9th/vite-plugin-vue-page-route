@@ -20,6 +20,7 @@ stats.html
 
 # Editor directories and files
 .vscode/*
+!.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea

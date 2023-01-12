@@ -11,6 +11,7 @@ import type {
   RouteFile
 } from '../types';
 
+// route config utils
 function transformRouteName(glob: string, routeName: string, pageDir: string) {
   let name = routeName;
 
@@ -108,6 +109,7 @@ export function getRouteConfigByGlobs(globs: string[], options: ContextOption) {
   return config;
 }
 
+// route module utils
 interface RouteModuleConfig {
   component: RouteComponentType;
   hasSingleLayout: boolean;
@@ -162,8 +164,7 @@ export function checkIsValidRouteModule(data: any): data is RouteModule {
   return isObject && data.name && data.path && data.component && data.meta;
 }
 
-export function getSingleRouteModulesFromGlob(glob: string, options: ContextOption) {
-  const routeName = getRouteNameByGlobWithTransformer(glob, options);
+function getSingleRouteModulesFromRouteName(routeName: string) {
   const routeNames = getAllRouteNames(routeName);
 
   const modules: RouteModule[] = routeNames.map((item, index) => {
@@ -185,6 +186,13 @@ export function getSingleRouteModulesFromGlob(glob: string, options: ContextOpti
 
     return module;
   });
+
+  return modules;
+}
+
+export function getSingleRouteModulesFromGlob(glob: string, options: ContextOption) {
+  const routeName = getRouteNameByGlobWithTransformer(glob, options);
+  const modules = getSingleRouteModulesFromRouteName(routeName);
 
   return modules;
 }
@@ -231,11 +239,11 @@ export function mergeFirstDegreeRouteModule(firstDegreeRouteModule: RouteModule,
   recurseMergeModule(firstDegreeRouteModule.children!, singleModules, 1);
 }
 
-export function getTotalRouteModuleFromGlobs(globs: string[], options: ContextOption) {
+export function getTotalRouteModuleFromNames(routeNames: string[]) {
   let module: RouteModule;
 
-  globs.forEach((glob, index) => {
-    const modules = getSingleRouteModulesFromGlob(glob, options);
+  routeNames.forEach((routeName, index) => {
+    const modules = getSingleRouteModulesFromRouteName(routeName);
 
     const [firstModule] = modules;
 
@@ -274,24 +282,6 @@ export async function getIsRouteModuleFileExist(moduleName: string, options: Con
   };
 }
 
-export function getRouteModuleItemByRouteName(routeName: string, modules: RouteModule[]) {
-  const findItem = modules.find(item => item.name === routeName);
-
-  if (findItem) {
-    return findItem;
-  }
-
-  let result: RouteModule | null = null;
-
-  modules.forEach(module => {
-    if (module.children) {
-      result = getRouteModuleItemByRouteName(routeName, module.children);
-    }
-  });
-
-  return result;
-}
-
 function getTheSmallLengthOfStrArr(arr: string[]) {
   let name: string = arr[0];
 
@@ -305,6 +295,65 @@ function getTheSmallLengthOfStrArr(arr: string[]) {
 
   return name;
 }
+
+// eslint-disable-next-line max-params
+export async function getRouteModuleWhetherFileExist(params: {
+  moduleName: string;
+  existModuleName: string;
+  routeConfig: RouteConfig;
+  options: ContextOption;
+  existCallback: (module: RouteModule, filePath: string) => Promise<RouteModule | null>;
+}) {
+  const { moduleName, existModuleName, routeConfig, options, existCallback } = params;
+
+  const { exist, filePath } = await getIsRouteModuleFileExist(existModuleName, options);
+
+  let module: RouteModule | null;
+
+  try {
+    if (exist) {
+      const importModule = (await import(filePath)).default;
+      console.log('importModule: ', importModule);
+
+      if (checkIsValidRouteModule(importModule)) {
+        module = await existCallback(importModule, filePath);
+      } else {
+        throw Error('invalid route module!');
+      }
+    } else {
+      throw Error('not exist module file!');
+    }
+  } catch (error) {
+    console.log('error: ', error);
+    const routeNames = routeConfig.files.filter(item => item.name.includes(moduleName)).map(item => item.name);
+
+    module = getTotalRouteModuleFromNames(routeNames);
+  }
+
+  return module;
+}
+
+export function recurseRemoveModuleByName(module: RouteModule, routeName: string) {
+  if (!module.children) return;
+
+  module.children = module.children.filter(item => item.name !== routeName);
+
+  module.children.forEach(item => {
+    if (routeName.includes(item.name)) {
+      recurseRemoveModuleByName(item, routeName);
+    }
+  });
+}
+
+export function recurseRemoveModuleByNames(module: RouteModule, routeNames: string[]) {
+  if (!routeNames.length) return;
+
+  routeNames.forEach(item => {
+    recurseRemoveModuleByName(module, item);
+  });
+}
+
+// FSWatcher hooks utils
 
 export function getRenamedDirConfig(dispatchs: FileWatcherDispatch[], options: ContextOption) {
   const unlinkDirs: string[] = [];

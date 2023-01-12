@@ -50,7 +50,8 @@
     "fs-extra": "^11.1.0",
     "kolorist": "^1.6.0",
     "magic-string": "^0.27.0",
-    "micromatch": "^4.0.5"
+    "micromatch": "^4.0.5",
+    "ts-node": "^10.9.1"
   },
   "devDependencies": {
     "@soybeanjs/cli": "^0.1.6",

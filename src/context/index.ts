@@ -1,3 +1,4 @@
+import { register } from 'ts-node';
 import chokidar from 'chokidar';
 import { createPluginOptions, getGlobsOfPage, getRouteConfigByGlobs, matchGlob } from '../shared';
 import { generateDeclaration } from './declaration';
@@ -11,6 +12,8 @@ import type {
   FileWatcherHooks,
   FileWatcherEvent
 } from '../types';
+
+register({ project: 'tsconfig.json' });
 
 export default class Context {
   options: ContextOption;
@@ -40,7 +43,7 @@ export default class Context {
 
   private createFileWatcherHooks(dispatchs: FileWatcherDispatch[]) {
     const declarationAndViewsHooks = createFWHooksOfGenDeclarationAndViews(dispatchs, this.routeConfig, this.options);
-    const moduleHooks = createFWHooksOfGenModule(dispatchs, this.options);
+    const moduleHooks = createFWHooksOfGenModule(dispatchs, this.routeConfig, this.options);
 
     const hooks: FileWatcherHooks = {
       async onRenameDirWithFile() {
