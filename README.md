@@ -13,7 +13,7 @@ import pageRoute from '@soybeanjs/vite-plugin-vue-page-route';
 export default defineConfig({
   plugins: [pageRoute({
     pageDir: 'src/views', // 默认
-    pageGlobs: ['**/index.{vue,tsx,jsx}', '!**/components*'], // 默认
+    pageGlobs: ['**/index.{vue,tsx,jsx}', '!**/components/**'], // 默认
     routeDts: 'src/typings/page-route.d.ts', // 默认
     routeModuleDir: 'src/router/modules', // 默认
     routeModuleExt: 'ts', // 默认
@@ -24,18 +24,24 @@ export default defineConfig({
     routeNameTansformer: name => name.replace(/^_([a-zA-Z]|[0-9]|$)+_*/, ''), // 默认
     /**
      * 路由懒加载
-     * @param name route name
+     * @param name 路由名称
      * @example
-     * - the direct import
+     * - 直接导入
      * ```ts
      * import Home from './views/home/index.vue';
      * ```
-     * - the lazy import
+     * - 懒加载导入
      * ```ts
      * const Home = import('./views/home/index.vue');
      * ```
      */
-    lazyImport: _name => true // 默认
+    lazyImport: _name => true, // 默认
+    /**
+     * 是否生成路由模块
+     * @param name 未转换过的路由名称(没有调用函数routeNameTansformer)
+     * @returns 是否生成路由模块的代码
+     */
+    onRouteModuleGenerate: name => !name.includes('_builtin') // 对于系统内置路由不生成路由模块, 其他的都生成
   })]
 });
 ```

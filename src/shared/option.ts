@@ -19,7 +19,7 @@ export function createPluginOptions(userOptions: Partial<PluginOption>, rootDir:
     routeModuleType: ROUTE_MODULE_TYPE,
     routeNameTansformer: name => name.replace(IGNORE_UNDERLINE_REG, ''),
     lazyImport: () => true,
-    onRouteModuleGenerate: moduleName => moduleName !== BUILTIN_ROUTE_MODULE,
+    onRouteModuleGenerate: name => !name.includes(BUILTIN_ROUTE_MODULE),
     rootDir
   };
 

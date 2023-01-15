@@ -11,7 +11,7 @@ import pageRoute from '@soybeanjs/vite-plugin-vue-page-route';
 export default defineConfig({
   plugins: [pageRoute({
     pageDir: 'src/views', // default
-    pageGlobs: ['**/index.{vue,tsx,jsx}', '!**/components*'], // default
+    pageGlobs: ['**/index.{vue,tsx,jsx}', '!**/components/**'], // default
     routeDts: 'src/typings/page-route.d.ts', // default
     routeModuleDir: 'src/router/modules', // default
     routeModuleExt: 'ts', // default
@@ -33,7 +33,13 @@ export default defineConfig({
      * const Home = import('./views/home/index.vue');
      * ```
      */
-    lazyImport: _name => true // default
+    lazyImport: _name => true, // default
+    /**
+     * whether generate the route module
+     * @param name the route name, which is not transformed(not execute function routeNameTansformer)
+     * @returns boolean
+     */
+    onRouteModuleGenerate: name => !name.includes('_builtin') // not generate route module for the builtin routes, but other routes will
   })]
 });
 ```
