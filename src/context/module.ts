@@ -1,5 +1,5 @@
 import { ensureFile, writeFile } from 'fs-extra';
-import { getRouteModuleFilePath, handleEslintFormat } from '../shared';
+import { getRouteModuleFilePath, handleEslintFormat, INVALID_ROUTE_NAME } from '../shared';
 import type { ContextOption, RouteModule } from '../types';
 
 export function isDeleteWholeModule(deletes: string[], files: string[], moduleName: string) {
@@ -9,6 +9,8 @@ export function isDeleteWholeModule(deletes: string[], files: string[], moduleNa
 }
 
 export async function generateRouteModuleCode(moduleName: string, module: RouteModule, options: ContextOption) {
+  if (moduleName === INVALID_ROUTE_NAME) return;
+
   const filePath = getRouteModuleFilePath(moduleName, options);
 
   const code = `const ${moduleName}: ${options.routeModuleType} = ${JSON.stringify(

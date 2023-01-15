@@ -8,6 +8,8 @@ import type { PluginOption, ContextOption } from '../types';
 export function createPluginOptions(userOptions: Partial<PluginOption>, rootDir: string) {
   const IGNORE_UNDERLINE_REG = /^_([a-zA-Z]|[0-9]|$)+_*/;
 
+  const BUILTIN_ROUTE_MODULE = '_builtin';
+
   const options: ContextOption = {
     pageDir: PAGE_DIR,
     pageGlobs: PAGE_GLOB,
@@ -17,6 +19,7 @@ export function createPluginOptions(userOptions: Partial<PluginOption>, rootDir:
     routeModuleType: ROUTE_MODULE_TYPE,
     routeNameTansformer: name => name.replace(IGNORE_UNDERLINE_REG, ''),
     lazyImport: () => true,
+    onRouteModuleGenerate: moduleName => moduleName !== BUILTIN_ROUTE_MODULE,
     rootDir
   };
 

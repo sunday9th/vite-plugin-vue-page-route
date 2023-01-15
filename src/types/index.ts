@@ -67,6 +67,12 @@ export interface PluginOption {
    * ```
    */
   lazyImport(name: string): boolean;
+  /**
+   * the route name, which is not tranfromed
+   * @param name
+   * @returns whether generate the route module, default is true
+   */
+  onRouteModuleGenerate(name: string): boolean;
 }
 
 export interface ContextOption extends PluginOption {

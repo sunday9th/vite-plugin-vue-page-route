@@ -1,5 +1,4 @@
 import { remove } from 'fs-extra';
-
 import {
   getRenamedDirConfig,
   getDelDirConfig,
@@ -7,6 +6,7 @@ import {
   getDelFileConfig,
   getAddFileConfig,
   getRouteModuleNameByRouteName,
+  getRoutePathFromName,
   getRouteModuleNameByGlob,
   getRouteModuleWhetherFileExist,
   getSingleRouteModulesFromGlob,
@@ -125,19 +125,26 @@ export function createFWHooksOfGenModule(
   const hooks: FileWatcherHooks = {
     async onRenameDirWithFile() {
       const { oldRouteName, newRouteName } = getRenamedDirConfig(dispatchs, options);
+      if (!oldRouteName || !newRouteName) return;
 
+      const oldRoutePath = getRoutePathFromName(oldRouteName);
+      const newRoutePath = getRoutePathFromName(newRouteName);
       const oldModuleName = getRouteModuleNameByRouteName(oldRouteName);
       const newModuleName = getRouteModuleNameByRouteName(newRouteName);
 
       const module = await getRouteModule(newModuleName, oldModuleName, async (routeModule, filePath) => {
         const moduleJson = JSON.stringify(routeModule);
-        const updateModuleJson = moduleJson.replace(oldRouteName, newRouteName);
+        const updateModuleJson = moduleJson
+          .replace(new RegExp(`${oldRouteName}`, 'g'), newRouteName)
+          .replace(new RegExp(`${oldRoutePath}`, 'g'), newRoutePath);
+
         const existModule = JSON.parse(updateModuleJson) as RouteModule;
 
         await remove(filePath);
 
         return existModule;
       });
+
       if (module) {
         await generateRouteModuleCode(newModuleName, module, options);
       }

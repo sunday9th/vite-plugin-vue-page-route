@@ -1,6 +1,12 @@
-import { register } from 'ts-node';
 import chokidar from 'chokidar';
-import { createPluginOptions, getGlobsOfPage, getRouteConfigByGlobs, matchGlob } from '../shared';
+import {
+  createPluginOptions,
+  getGlobsOfPage,
+  getRouteConfigByGlobs,
+  matchGlob,
+  getRouteNameByGlob,
+  INVALID_ROUTE_NAME
+} from '../shared';
 import { generateDeclaration } from './declaration';
 import { generateViews } from './views';
 import { fileWatcherHandler, createFWHooksOfGenDeclarationAndViews, createFWHooksOfGenModule } from './fs';
@@ -12,8 +18,6 @@ import type {
   FileWatcherHooks,
   FileWatcherEvent
 } from '../types';
-
-register({ project: 'tsconfig.json' });
 
 export default class Context {
   options: ContextOption;
@@ -43,7 +47,18 @@ export default class Context {
 
   private createFileWatcherHooks(dispatchs: FileWatcherDispatch[]) {
     const declarationAndViewsHooks = createFWHooksOfGenDeclarationAndViews(dispatchs, this.routeConfig, this.options);
-    const moduleHooks = createFWHooksOfGenModule(dispatchs, this.routeConfig, this.options);
+
+    const filteredDispatchs = dispatchs.filter(dispatch => {
+      const isFile = dispatch.event === 'add' || dispatch.event === 'unlink';
+      if (!isFile) return true;
+
+      const routeName = getRouteNameByGlob(dispatch.path, this.options.pageDir);
+      const generateRouteModule = this.options.onRouteModuleGenerate(routeName);
+
+      return generateRouteModule;
+    });
+
+    const moduleHooks = createFWHooksOfGenModule(filteredDispatchs, this.routeConfig, this.options);
 
     const hooks: FileWatcherHooks = {
       async onRenameDirWithFile() {
@@ -75,7 +90,14 @@ export default class Context {
     const isMatch = matchGlob(glob, this.options);
     if (!isMatch) return;
 
-    this.dispatchStack.push({ event, path: glob });
+    const dispacth: FileWatcherDispatch = {
+      event,
+      path: glob
+    };
+
+    if (this.checkDispatch(dispacth)) {
+      this.dispatchStack.push(dispacth);
+    }
 
     if (!this.dispatchId) {
       this.dispatchId = setTimeout(async () => {
@@ -89,6 +111,16 @@ export default class Context {
         this.dispatchId = null;
       }, 100);
     }
+  }
+
+  private checkDispatch(dispatch: FileWatcherDispatch) {
+    const isFile = dispatch.event === 'add' || dispatch.event === 'unlink';
+
+    if (!isFile) return true;
+
+    const routeName = getRouteNameByGlob(dispatch.path, this.options.pageDir);
+
+    return routeName !== INVALID_ROUTE_NAME;
   }
 
   setupFileWatcher() {

@@ -1,5 +1,7 @@
+import { writeFile, remove } from 'fs-extra';
 import { access } from 'fs/promises';
 import { red, bgRed, green, bgYellow, yellow } from 'kolorist';
+import { transformFile } from '@swc/core';
 import { SPLASH_MARK, PAGE_DEGREE_SPLIT_MARK, ROUTE_NAME_REG, INVALID_ROUTE_NAME, CAMEL_OR_PASCAL } from './constant';
 import { getRelativePathOfGlob } from './glob';
 import type {
@@ -42,7 +44,7 @@ function transformRouteName(glob: string, routeName: string, pageDir: string) {
   return name;
 }
 
-function getRouteNameByGlob(glob: string, pageDir: string) {
+export function getRouteNameByGlob(glob: string, pageDir: string) {
   const globSplits = glob.split(SPLASH_MARK);
 
   const isFile = glob.includes('.');
@@ -134,7 +136,7 @@ function getRouteModuleConfig(index: number, length: number) {
   return findItem?.[1] || config;
 }
 
-function getRoutePathFromName(routeName: string) {
+export function getRoutePathFromName(routeName: string) {
   const PATH_SPLIT_MARK = '/';
 
   return PATH_SPLIT_MARK + routeName.replace(new RegExp(`${PAGE_DEGREE_SPLIT_MARK}`, 'g'), PATH_SPLIT_MARK);
@@ -197,7 +199,7 @@ export function getSingleRouteModulesFromGlob(glob: string, options: ContextOpti
   return modules;
 }
 
-function getSingleRouteModulesWithChildren(singleModules: RouteModule[]) {
+function getSingleRouteModulesWithChildren(singleModules: RouteModule[]): RouteModule | null {
   const reversedModules = [...singleModules].reverse();
 
   reversedModules.forEach((module, index) => {
@@ -206,7 +208,7 @@ function getSingleRouteModulesWithChildren(singleModules: RouteModule[]) {
     }
   });
 
-  return reversedModules[reversedModules.length - 1];
+  return reversedModules[reversedModules.length - 1] || null;
 }
 
 function recurseMergeModule(modules: RouteModule[], singleModules: RouteModule[], singleRouteLevel: number) {
@@ -226,8 +228,9 @@ function recurseMergeModule(modules: RouteModule[], singleModules: RouteModule[]
     recurseMergeModule(findModule.children!, singleModules, singleRouteLevel + 1);
   } else {
     const pushModule = getSingleRouteModulesWithChildren(singleModules.slice(singleRouteLevel));
-
-    modules.push(pushModule);
+    if (pushModule) {
+      modules.push(pushModule);
+    }
   }
 }
 
@@ -251,7 +254,7 @@ export function getTotalRouteModuleFromNames(routeNames: string[]) {
       module = firstModule;
     }
 
-    if (firstModule.name === module.name) {
+    if (firstModule.name === module.name && modules.length > 1) {
       mergeFirstDegreeRouteModule(module, modules);
     }
   });
@@ -312,8 +315,7 @@ export async function getRouteModuleWhetherFileExist(params: {
 
   try {
     if (exist) {
-      const importModule = (await import(filePath)).default;
-      console.log('importModule: ', importModule);
+      const importModule = await getRouteModuleFromFile(filePath, existModuleName, options);
 
       if (checkIsValidRouteModule(importModule)) {
         module = await existCallback(importModule, filePath);
@@ -324,7 +326,6 @@ export async function getRouteModuleWhetherFileExist(params: {
       throw Error('not exist module file!');
     }
   } catch (error) {
-    console.log('error: ', error);
     const routeNames = routeConfig.files.filter(item => item.name.includes(moduleName)).map(item => item.name);
 
     module = getTotalRouteModuleFromNames(routeNames);
@@ -452,4 +453,19 @@ export function getAddFileConfig(dispatchs: FileWatcherDispatch[], options: Cont
   };
 
   return config;
+}
+
+async function getRouteModuleFromFile(filePath: string, moduleName: string, options: ContextOption) {
+  const transformedFilePath = filePath.replace(`${moduleName}.${options.routeModuleExt}`, `${moduleName}-swc.js`);
+  const { code } = await transformFile(filePath, { filename: transformedFilePath, module: { type: 'commonjs' } });
+
+  if (code) {
+    await writeFile(transformedFilePath, code, 'utf-8');
+  }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { default: importModule } = require(transformedFilePath);
+
+  await remove(transformedFilePath);
+
+  return importModule as RouteModule;
 }
