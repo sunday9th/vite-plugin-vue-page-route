@@ -77,11 +77,6 @@ export function getRouteNameByGlobWithTransformer(glob: string, options: Context
   return options.routeNameTansformer(routeName);
 }
 
-function removeInvalidRouteFiles(files: RouteFile[]) {
-  const data = [...files];
-  return files.filter(item => data.every(v => v.name === item.name || !v.name.includes(item.name)));
-}
-
 export function getRouteConfigByGlobs(globs: string[], options: ContextOption) {
   const config: RouteConfig = {
     names: [],
@@ -90,7 +85,6 @@ export function getRouteConfigByGlobs(globs: string[], options: ContextOption) {
 
   globs.sort().forEach(glob => {
     const routeName = getRouteNameByGlob(glob, options.pageDir);
-
     const names = getAllRouteNames(routeName);
     config.names.push(...names);
 
@@ -105,8 +99,6 @@ export function getRouteConfigByGlobs(globs: string[], options: ContextOption) {
   config.files = config.files
     .map(({ name, path }) => ({ name: options.routeNameTansformer(name), path }))
     .filter(item => item.name !== INVALID_ROUTE_NAME);
-
-  config.files = removeInvalidRouteFiles(config.files);
 
   return config;
 }
@@ -468,4 +460,8 @@ async function getRouteModuleFromFile(filePath: string, moduleName: string, opti
   await remove(transformedFilePath);
 
   return importModule as RouteModule;
+}
+
+export function transformModuleNameToVariable(name: string) {
+  return name.replace(/-(\w)/g, (_, match: string) => match.toUpperCase());
 }

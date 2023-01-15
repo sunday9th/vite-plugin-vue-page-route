@@ -58,6 +58,7 @@ declare namespace PageRoute {
     | 'home_second-page'
     | 'home_third'
     | 'login'
+    | 'one_two_three'
     | 'one_two_three-1'
     | 'one_two_three-ano'
     | 'test'

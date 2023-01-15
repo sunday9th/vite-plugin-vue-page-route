@@ -1,6 +1,6 @@
 export const PAGE_DIR = 'src/views';
 
-export const PAGE_GLOB = ['**/index.{vue,tsx,jsx}', '!**/components*'];
+export const PAGE_GLOB = ['**/index.{vue,tsx,jsx}', '!**/components/**'];
 
 export const ROUTE_DTS = 'src/typings/page-route.d.ts';
 

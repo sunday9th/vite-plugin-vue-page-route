@@ -17,6 +17,7 @@ export const views: Record<
   'home_second-page': () => import('./home/second-page/index.vue'),
   home_third: () => import('./home/third/index.vue'),
   login: () => import('./_builtin/login/index.vue'),
+  one_two_three: () => import('./one/two/three/index.vue'),
   'one_two_three-1': () => import('./one/two/three-1/index.vue'),
   'one_two_three-ano': () => import('./one/two/three-ano/index.vue'),
   test: () => import('./test/index.vue')

@@ -135,7 +135,7 @@ export function createFWHooksOfGenModule(
       const module = await getRouteModule(newModuleName, oldModuleName, async (routeModule, filePath) => {
         const moduleJson = JSON.stringify(routeModule);
         const updateModuleJson = moduleJson
-          .replace(new RegExp(`${oldRouteName}`, 'g'), newRouteName)
+          .replace(new RegExp(`"${oldRouteName}`, 'g'), `"${newRouteName}`)
           .replace(new RegExp(`${oldRoutePath}`, 'g'), newRoutePath);
 
         const existModule = JSON.parse(updateModuleJson) as RouteModule;
@@ -191,7 +191,31 @@ export function createFWHooksOfGenModule(
       }
     },
     async onDelFile() {
-      this.onDelDirWithFile();
+      const { delRouteNames } = getDelFileConfig(dispatchs, options);
+
+      const globs = dispatchs.filter(dispatch => dispatch.event === 'unlink').map(dispatch => dispatch.path);
+
+      delRouteNames.forEach(async delRouteName => {
+        const moduleName = getRouteModuleNameByRouteName(delRouteName);
+
+        const routeNames = globs.map(glob => getRouteNameByGlobWithTransformer(glob, options));
+
+        const module = await getRouteModule(moduleName, moduleName, async (routeModule, filePath) => {
+          if (delRouteName === moduleName) {
+            await remove(filePath);
+
+            return null;
+          }
+
+          recurseRemoveModuleByNames(routeModule, routeNames);
+
+          return routeModule;
+        });
+
+        if (module) {
+          await generateRouteModuleCode(moduleName, module, options);
+        }
+      });
     },
     async onAddFile() {
       await this.onAddDirWithFile();
