@@ -17,6 +17,7 @@ declare namespace PageRoute {
    */
   type RouteKey =
     | '404'
+    | 'login'
     | 'about'
     | 'demo'
     | 'home'
@@ -31,12 +32,11 @@ declare namespace PageRoute {
     | 'home_multi_third_third-child2'
     | 'home_second-page'
     | 'home_third'
-    | 'login'
     | 'one'
     | 'one_two'
-    | 'one_two_three'
     | 'one_two_three-1'
     | 'one_two_three-ano'
+    | 'one_two_three'
     | 'test';
 
   /**
@@ -46,6 +46,7 @@ declare namespace PageRoute {
   type LastDegreeRouteKey = Extract<
     RouteKey,
     | '404'
+    | 'login'
     | 'about'
     | 'demo'
     | 'home_fifth'
@@ -57,10 +58,9 @@ declare namespace PageRoute {
     | 'home_multi_third_third-child2'
     | 'home_second-page'
     | 'home_third'
-    | 'login'
-    | 'one_two_three'
     | 'one_two_three-1'
     | 'one_two_three-ano'
+    | 'one_two_three'
     | 'test'
   >;
 }

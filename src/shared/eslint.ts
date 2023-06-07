@@ -1,7 +1,8 @@
 import { access } from 'fs/promises';
-import execa from 'execa';
 
 export async function handleEslintFormat(filePath: string) {
+  const { execa } = await import('execa');
+
   const eslintBinPath = `${process.cwd()}/node_modules/eslint/bin/eslint.js`;
 
   try {

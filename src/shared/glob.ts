@@ -1,5 +1,4 @@
 import fastGlob from 'fast-glob';
-import { isMatch } from 'micromatch';
 import type { ContextOption } from '../types';
 
 /**
@@ -19,7 +18,9 @@ export function getRelativePathOfGlob(glob: string, pageDir: string) {
   return `${pageDir}/${glob}`;
 }
 
-export function matchGlob(glob: string, options: ContextOption) {
+export async function matchGlob(glob: string, options: ContextOption) {
+  const { isMatch } = await import('micromatch');
+
   const isFile = isMatch(glob, '**/*.*');
   const { pageGlobs } = options;
 

@@ -1,9 +1,9 @@
-import { ensureFile, writeFile } from 'fs-extra';
 import {
   getRouteModuleFilePath,
   handleEslintFormat,
   transformModuleNameToVariable,
-  INVALID_ROUTE_NAME
+  INVALID_ROUTE_NAME,
+  useFsExtra
 } from '../shared';
 import type { ContextOption, RouteModule } from '../types';
 
@@ -15,6 +15,8 @@ export function isDeleteWholeModule(deletes: string[], files: string[], moduleNa
 
 export async function generateRouteModuleCode(moduleName: string, module: RouteModule, options: ContextOption) {
   if (moduleName === INVALID_ROUTE_NAME) return;
+
+  const { ensureFile, writeFile } = await useFsExtra();
 
   const filePath = getRouteModuleFilePath(moduleName, options);
 

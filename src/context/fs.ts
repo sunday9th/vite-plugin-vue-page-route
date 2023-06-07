@@ -1,4 +1,3 @@
-import { remove } from 'fs-extra';
 import {
   getRenamedDirConfig,
   getDelDirConfig,
@@ -12,7 +11,8 @@ import {
   getSingleRouteModulesFromGlob,
   mergeFirstDegreeRouteModule,
   getRouteNameByGlobWithTransformer,
-  recurseRemoveModuleByNames
+  recurseRemoveModuleByNames,
+  useFsExtra
 } from '../shared';
 import type {
   ContextOption,
@@ -126,6 +126,7 @@ export function createFWHooksOfGenModule(
     async onRenameDirWithFile() {
       const { oldRouteName, newRouteName } = getRenamedDirConfig(dispatchs, options);
       if (!oldRouteName || !newRouteName) return;
+      const { remove } = await useFsExtra();
 
       const oldRoutePath = getRoutePathFromName(oldRouteName);
       const newRoutePath = getRoutePathFromName(newRouteName);
@@ -150,6 +151,7 @@ export function createFWHooksOfGenModule(
       }
     },
     async onDelDirWithFile() {
+      const { remove } = await useFsExtra();
       const { delRouteName } = getDelDirConfig(dispatchs, options);
       const moduleName = getRouteModuleNameByRouteName(delRouteName);
 
@@ -191,6 +193,7 @@ export function createFWHooksOfGenModule(
       }
     },
     async onDelFile() {
+      const { remove } = await useFsExtra();
       const { delRouteNames } = getDelFileConfig(dispatchs, options);
 
       const globs = dispatchs.filter(dispatch => dispatch.event === 'unlink').map(dispatch => dispatch.path);

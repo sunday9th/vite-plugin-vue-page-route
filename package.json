@@ -28,9 +28,12 @@
   },
   "exports": {
     "types": "./dist/index.d.ts",
-    "require": "./dist/index.js",
+    "require": "./dist/index.cjs",
     "import": "./dist/index.mjs"
   },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -58,6 +61,7 @@
   },
   "devDependencies": {
     "@soybeanjs/cli": "0.5.1",
+    "@types/fs-extra": "11.0.1",
     "@types/micromatch": "4.0.2",
     "@types/node": "20.2.5",
     "@types/throttle-debounce": "5.0.0",

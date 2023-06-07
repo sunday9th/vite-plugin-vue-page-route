@@ -3,3 +3,4 @@ export * from './option';
 export * from './glob';
 export * from './route';
 export * from './eslint';
+export * from './fs-extra';

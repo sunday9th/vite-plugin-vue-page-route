@@ -86,8 +86,8 @@ export default class Context {
     return hooks;
   }
 
-  private dispatchFileWatcher(glob: string, event: FileWatcherEvent) {
-    const isMatch = matchGlob(glob, this.options);
+  private async dispatchFileWatcher(glob: string, event: FileWatcherEvent) {
+    const isMatch = await matchGlob(glob, this.options);
     if (!isMatch) return;
 
     const dispacth: FileWatcherDispatch = {

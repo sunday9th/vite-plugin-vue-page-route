@@ -1,9 +1,9 @@
-import { writeFile, remove } from 'fs-extra';
 import { access } from 'fs/promises';
 import { red, bgRed, green, bgYellow, yellow } from 'kolorist';
 import { transformFile } from '@swc/core';
 import { SPLASH_MARK, PAGE_DEGREE_SPLIT_MARK, ROUTE_NAME_REG, INVALID_ROUTE_NAME, CAMEL_OR_PASCAL } from './constant';
 import { getRelativePathOfGlob } from './glob';
+import { useFsExtra } from './fs-extra';
 import type {
   ContextOption,
   RouteConfig,
@@ -448,6 +448,8 @@ export function getAddFileConfig(dispatchs: FileWatcherDispatch[], options: Cont
 }
 
 async function getRouteModuleFromFile(filePath: string, moduleName: string, options: ContextOption) {
+  const { writeFile, remove } = await useFsExtra();
+
   const transformedFilePath = filePath.replace(`${moduleName}.${options.routeModuleExt}`, `${moduleName}-swc.js`);
   const { code } = await transformFile(filePath, { filename: transformedFilePath, module: { type: 'commonjs' } });
 
